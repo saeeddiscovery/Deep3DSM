@@ -9,3 +9,6 @@ __pycache__/
 
 # Dataset folder
 /Dataset/
+
+# My docs
+/VSTS.txt
