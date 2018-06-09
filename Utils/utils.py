@@ -7,7 +7,10 @@ def myPrint(text, path):
     
 def visualizeDataset(dataset, plotSize=[4,4]):
     import matplotlib.pyplot as plt
+<<<<<<< HEAD
     plt.figure()
+=======
+>>>>>>> 7042cc93aa7242c35e17cb21a164ee5f5c3a4ea0
     for num in range(len(dataset)):
         plt.subplot(plotSize[0],plotSize[1],num+1)
         centerSlice = int(dataset.shape[1]/2)

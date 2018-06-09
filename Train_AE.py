@@ -42,7 +42,6 @@ dTrain, dValid, _, _ = prepare_dataset(datasetDir, logPath=resultsDir+currRun)
 #from Utils.utils import visualizeDataset
 #visualizeDataset(dTrain, plotSize=[4,4])
 
-
 '''--------------Build Model--------------'''
 
 import tensorflow as tf
