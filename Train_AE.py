@@ -38,14 +38,9 @@ from Utils.load_dataset import prepare_dataset
 datasetDir = './Dataset/Dataset_Liver'
 dTrain, dValid, _, _ = prepare_dataset(datasetDir, logPath=resultsDir+currRun)
 
-##-------Visualize Dataset-------#
-#import matplotlib.pyplot as plt
-#for num in range(len(dTrain)):
-#    plt.subplot(4,4,num+1)
-#    centerSlice = int(dTrain.shape[1]/2)
-#    plt.imshow(dTrain[num, :, centerSlice, :, 0], cmap='gray')
-#    plt.axis('off')
-#plt.suptitle('Center Coronal Slice\nfrom each training image')
+#-------Visualize Dataset-------#
+#from Utils.utils import visualizeDataset
+#visualizeDataset(dTrain, plotSize=[4,4])
 
 
 '''--------------Build Model--------------'''
