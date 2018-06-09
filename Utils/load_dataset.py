@@ -132,4 +132,4 @@ def rescale(data):
 if __name__ == '__main__':
     datasetDir = './Dataset_Liver'
     padSize = 0
-    dTrain, dValid, training_list, validation_list = prepare_dataset(datasetDir, padSize, shuffle=True)
+    dTrain, dValid, training_list, validation_list = prepare_dataset(datasetDir)

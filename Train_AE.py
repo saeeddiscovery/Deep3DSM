@@ -36,7 +36,7 @@ else:
 from Utils.load_dataset import prepare_dataset
  
 datasetDir = './Dataset/Dataset_Liver'
-dTrain, dValid, _, _ = prepare_dataset(datasetDir, split=0.8, shuffle=True, logPath=resultsDir+currRun)
+dTrain, dValid, _, _ = prepare_dataset(datasetDir, logPath=resultsDir+currRun)
 
 ##-------Visualize Dataset-------#
 #import matplotlib.pyplot as plt
