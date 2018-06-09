@@ -7,8 +7,10 @@ __pycache__/
 .spyderproject
 .spyproject
 
-# Dataset folder
+# folders
 /Dataset/
+/tensorboard/
+/Results/
 
 # My docs
 /VSTS.txt
