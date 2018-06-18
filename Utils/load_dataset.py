@@ -108,6 +108,19 @@ def prepare_dataset(datasetDir, split=0.8, padSize=0, shuffle=True, scaleFactor=
 
     return dTrain, dValid, training_list, validation_list
 
+	
+def load_list(imagesListFile, scaleFactor=None):
+    with open(imagesListFile, 'r') as fileList:
+        files = fileList.readlines()
+    imgFiles = []
+    fileNames = []
+    for i in range(len(files)):
+        imgFiles.append(files[i].split('\t')[1][:-1])
+        fileNames.append(os.path.basename(files[i].split('\t')[1])[:-1])
+    dImages = load_images(imgFiles, padSize=0, ScaleFactor=scaleFactor)
+#    print('------------<  Dataset Info >------------')
+#    print('...Test images:      {0}'.format(len(dImages)))
+    return dImages, fileNames
 
 def normalize(data):
     count = len(data)
@@ -124,8 +137,8 @@ def rescale(data):
         data[i] /= np.max(data_rescaled[:])
 #        data[i] -= np.mean(data_rescaled[:])
 #        data[i] /= np.std(data_rescaled[:])
-        data[i] -= 0.5
-        data[i] *= 2.
+#        data[i] -= 0.5
+#        data[i] *= 2.
         data[i] = np.asarray(data[i], 'float32')
     return data
 
