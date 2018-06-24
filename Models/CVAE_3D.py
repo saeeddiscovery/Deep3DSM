@@ -11,50 +11,69 @@ Created on Mon Jun  4 19:57:08 2018
 import tensorflow as tf
 import keras.backend as K
 
-def ConvBlock(x, filters, kernel, strides):
+def ConvBN(x, filters, strides, name):
+    kernel=(3,3,3)
     x = tf.keras.layers.Conv3D(filters, kernel, strides,
-                               padding='same', activation=None)(x)
+                               padding='same', activation=None, name=name)(x)
     x = tf.keras.layers.BatchNormalization()(x)
     x = tf.keras.layers.Activation(tf.keras.activations.relu)(x)
     return x
 
-def UpConvBlock(x, filters, kernel, strides):
+def UpConvBN(x, filters, strides, name):
+    kernel=(2,2,2)
     x = tf.keras.layers.Conv3DTranspose(filters, kernel, strides,
-                                        padding='same', activation=None)(x)
+                                        padding='same', activation=None, name=name)(x)
     x = tf.keras.layers.BatchNormalization()(x)
     x = tf.keras.layers.Activation(tf.keras.activations.relu)(x)
+    return x
+
+def BNConv(xin, filters, strides, name):
+    kernel=(3,3,3)
+    x = tf.keras.layers.BatchNormalization()(xin)
+    x = tf.keras.layers.Activation(tf.keras.activations.relu)(x)
+    x = tf.keras.layers.Conv3D(filters, kernel, strides,
+                               padding='same', activation=None, name=name)(x)
+    return x
+
+def BNUpConv(xin, filters, strides, name):
+    kernel=(2,2,2)
+    x = tf.keras.layers.BatchNormalization()(xin)
+    x = tf.keras.layers.Activation(tf.keras.activations.relu)(x)
+    x = tf.keras.layers.Conv3DTranspose(filters, kernel, strides=strides,
+                                        padding='same', activation=None, name=name)(x)
     return x
 
 def Generator(latent_dim):
-    generator_input = tf.keras.layers.Input(shape=(latent_dim,))
-    x = tf.keras.layers.Dense(512, activation='relu')(generator_input)
-    x = tf.keras.layers.Reshape((8,8,8,1))(x)
-    x = UpConvBlock(x, filters=32, kernel=(2,2,2), strides=(2,2,2))
-    x = ConvBlock(x, filters=32, kernel=(3,3,3), strides=(1,1,1))
-    x = UpConvBlock(x, filters=16, kernel=(2,2,2), strides=(2,2,2))
-    x = ConvBlock(x, filters=16, kernel=(3,3,3), strides=(1,1,1))
-    x = UpConvBlock(x, filters=8, kernel=(2,2,2), strides=(2,2,2))
-    x = ConvBlock(x, filters=8, kernel=(3,3,3), strides=(1,1,1))
-    x = UpConvBlock(x, filters=8, kernel=(2,2,2), strides=(2,2,2))
+    generator_input = tf.keras.layers.Input(shape=(latent_dim,), name='input')
+    x = tf.keras.layers.Dense(512, activation='relu', name='Dense2')(generator_input)
+    x = tf.keras.layers.Reshape((8,8,8,1), name='Reshape')(x)
+    x = UpConvBN(x, filters=32, strides=(2,2,2), name='UpConv1')
+    x = BNConv(x, filters=32, strides=(1,1,1), name='Conv9')
+    x = UpConvBN(x, filters=16, strides=(2,2,2), name='UpConv2')
+    x = BNConv(x, filters=16, strides=(1,1,1), name='Conv10')
+    x = UpConvBN(x, filters=8, strides=(2,2,2), name='UpConv3')
+    x = BNConv(x, filters=8, strides=(1,1,1), name='Conv11')
+    x = UpConvBN(x, filters=8, strides=(2,2,2), name='UpConv4')
     x_generated = tf.keras.layers.Conv3D(filters=1, kernel_size=(3,3,3), strides=(1,1,1),
-                               padding='same', activation='sigmoid')(x)
+                               padding='same', activation='sigmoid', name='output')(x)
     generator = tf.keras.Model(generator_input, x_generated)
     return generator
     
 def CVAE(img_size, batch_size, latent_dim):
-    inLayer = tf.keras.layers.Input(shape=img_size)
-    x = ConvBlock(inLayer, filters=8, kernel=(3,3,3), strides=(2,2,2))
-    x = ConvBlock(x, filters=8, kernel=(3,3,3), strides=(1,1,1))
-    x = ConvBlock(x, filters=16, kernel=(3,3,3), strides=(2,2,2))
-    x = ConvBlock(x, filters=16, kernel=(3,3,3), strides=(1,1,1))
-    x = ConvBlock(x, filters=32, kernel=(3,3,3), strides=(2,2,2))
-    x = ConvBlock(x, filters=32, kernel=(3,3,3), strides=(1,1,1))
-    x = ConvBlock(x, filters=64, kernel=(3,3,3), strides=(2,2,2))
-    x = ConvBlock(x, filters=1, kernel=(1,1,1), strides=(1,1,1))
-    x = tf.keras.layers.Flatten()(x)
-    x = tf.keras.layers.Dense(latent_dim, activation='tanh')(x)
-    z_mean = tf.keras.layers.Dense(latent_dim)(x)
-    z_log_var = tf.keras.layers.Dense(latent_dim)(x)
+    inLayer = tf.keras.layers.Input(batch_shape=(batch_size,) + img_size, name='input')
+#    inLayer = tf.keras.layers.Input(shape=img_size, name='input')
+    x = ConvBN(inLayer, filters=8, strides=(2,2,2), name='Conv1_d')
+    x = BNConv(x, filters=8, strides=(1,1,1), name='Conv2')
+    x = BNConv(x, filters=16, strides=(2,2,2), name='Conv3_d')
+    x = BNConv(x, filters=16, strides=(1,1,1), name='Conv4')
+    x = BNConv(x, filters=32, strides=(2,2,2), name='Conv5_d')
+    x = BNConv(x, filters=32, strides=(1,1,1), name='Conv6')
+    x = BNConv(x, filters=64, strides=(2,2,2), name='Conv7_d')
+    x = BNConv(x, filters=1, strides=(1,1,1), name='Conv8')
+    x = tf.keras.layers.Flatten(name='Flatten')(x)
+    x = tf.keras.layers.Dense(latent_dim, activation='sigmoid', name='Dense1')(x)
+    z_mean = tf.keras.layers.Dense(latent_dim, name='z_mean')(x)
+    z_log_var = tf.keras.layers.Dense(latent_dim, name='z_var')(x)
     
     epsilon_std = 1.0
     def sampling(args):
@@ -102,11 +121,9 @@ def CVAE(img_size, batch_size, latent_dim):
     
 if __name__ == '__main__':
     img_size = (128,128,128,1)
-    batch_size = 1
+    batch_size = 4
     latent_dim = 128
     encoder, generator, CVAE_3D = CVAE(img_size, batch_size, latent_dim)
-    opt = tf.keras.optimizers.Adam(lr=0.001, decay=1e-6)
-    CVAE_3D.compile(optimizer=opt, loss=None)
     CVAE_3D.summary()
     tf.keras.utils.plot_model(CVAE_3D, to_file='CVAE_Model.png', show_shapes=True)
     tf.keras.utils.plot_model(encoder, to_file='CVAE_Encoder.png', show_shapes=True)

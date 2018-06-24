@@ -19,20 +19,20 @@ def ConvBN(xin, filters, strides, name):
     x = tf.keras.layers.Activation(tf.keras.activations.relu)(x)
     return x
 
-def BNConv(xin, filters, strides, name):
-    kernel=(3,3,3)
-    x = tf.keras.layers.BatchNormalization()(xin)
-    x = tf.keras.layers.Activation(tf.keras.activations.relu)(x)
-    x = tf.keras.layers.Conv3D(filters, kernel, strides,
-                               padding='same', activation=None, name=name)(x)
-    return x
-
 def UpConvBN(xin, filters, strides, name):
     kernel=(2,2,2)
     x = tf.keras.layers.Conv3DTranspose(filters, kernel, strides=strides,
                                         padding='same', activation=None, name=name)(xin)
     x = tf.keras.layers.BatchNormalization()(x)
     x = tf.keras.layers.Activation(tf.keras.activations.relu)(x)
+    return x
+
+def BNConv(xin, filters, strides, name):
+    kernel=(3,3,3)
+    x = tf.keras.layers.BatchNormalization()(xin)
+    x = tf.keras.layers.Activation(tf.keras.activations.relu)(x)
+    x = tf.keras.layers.Conv3D(filters, kernel, strides,
+                               padding='same', activation=None, name=name)(x)
     return x
 
 def BNUpConv(xin, filters, strides, name):
@@ -96,7 +96,7 @@ def FullModel(img_size, latent_dim):
     x = BNConv(x, filters=8, strides=(1,1,1), name='Conv12')
     x = tf.keras.layers.Conv3D(filters=1, kernel_size=1)(x)
     x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.Activation(tf.keras.activations.sigmoid)(x)
+    x = tf.keras.layers.Activation('sigmoid')(x)
     
     CAE_Model = tf.keras.Model(inLayer, x)
     return CAE_Model

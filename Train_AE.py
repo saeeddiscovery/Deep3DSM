@@ -11,8 +11,8 @@ import os, glob
 from Utils.utils import myPrint, myLog
 from Utils.utils import sortHuman
 
-model = 'CAE'
-#model = 'CVAE'
+#model = 'CAE'
+model = 'CVAE'
 resultsDir = './Results/'
 
 # Resume training
@@ -54,16 +54,16 @@ if continueFromLatRun:
 else:
     dTrain, dValid, _, _ = prepare_dataset(datasetDir, split=0.85, logPath=currDir)
 
-# Add random noise before training!
-myPrint('...Adding noise to images N(0,0.33)', path=currDir)
-import numpy as np
-noise_factor = 0.5 
-dTrain_noisy = dTrain + noise_factor * np.random.normal(loc=0.0, scale=0.33, size=dTrain.shape)
-dValid_noisy = dValid + noise_factor * np.random.normal(loc=0.0, scale=0.33, size=dValid.shape) 
+## Add random noise before training!
+#myPrint('...Adding noise to images N(0,0.33)', path=currDir)
+#import numpy as np
+#noise_factor = 0.5 
+#dTrain_noisy = dTrain + noise_factor * np.random.normal(loc=0.0, scale=0.33, size=dTrain.shape)
+#dValid_noisy = dValid + noise_factor * np.random.normal(loc=0.0, scale=0.33, size=dValid.shape) 
 
 ##-------Visualize Dataset-------#
 #from Utils.utils import visualizeDataset
-#visualizeDataset(dTrain_noisy[0:16], plotSize=[4,4])
+#visualizeDataset(dTrain[0:16], plotSize=[4,4])
 
 
 '''--------------Build Model--------------'''
@@ -102,7 +102,7 @@ def summary(model): # Compute number of params in a model (the actual number of 
 img_size = dTrain.shape[1:]
 #img_size = (None, None, None, 1)
 latent_dim = 128
-batch_size = 4
+batch_size = 1
 myPrint('...Input image size: {}'.format(img_size), path=currDir)
 myPrint('...Batch size: {}'.format(batch_size), path=currDir)
 
@@ -111,22 +111,24 @@ def get_lr_metric(optimizer):
         return optimizer.lr
     return lr
 
-lr = 0.01
-decay = 1e-2
+lr = 0.001
+decay = 1e-3
+#opt = tf.keras.optimizers.Adam(lr=0.01, decay=1e-5)
+opt = tf.keras.optimizers.Adam(lr=lr)
+lr_metric = get_lr_metric(opt)
 
 if model == 'CAE':
     fullModel = CAE_3D.FullModel(img_size, latent_dim)
     encoder = CAE_3D.get_encoder_from_CAE3D(fullModel)
+    fullModel.compile(optimizer=opt, loss=dice_coef_loss, metrics=[lr_metric],
+            options=run_opts)
 
 elif model == 'CVAE':
     encoder, generator, fullModel = CVAE_3D.CVAE(img_size, batch_size, latent_dim)
     tf.keras.utils.plot_model(generator, to_file=currDir+'/reports/' + model + '_3D_generator.png', show_shapes=True)
-
-#opt = tf.keras.optimizers.Adam(lr=0.01, decay=1e-5)
-opt = tf.keras.optimizers.Adam(lr=lr)
-lr_metric = get_lr_metric(opt)
-fullModel.compile(optimizer=opt, loss=dice_coef_loss, metrics=['accuracy', lr_metric],
+    fullModel.compile(optimizer=opt, loss=None, metrics=[lr_metric],
             options=run_opts)
+
 summary(fullModel)
 tf.keras.utils.plot_model(fullModel, to_file=currDir+'/reports/' + model + '_3D_Model.png', show_shapes=True)
 tf.keras.utils.plot_model(encoder, to_file=currDir+'/reports/' + model + '_3D_encoder.png', show_shapes=True)
@@ -170,9 +172,14 @@ logger = tf.keras.callbacks.CSVLogger(currDir+'/reports/training.log', separator
 tensorBoard = tf.keras.callbacks.TensorBoard(log_dir='./tensorboard/'+model+currRun)
 lrs = tf.keras.callbacks.LearningRateScheduler(lambda epoch: lr / (1. + decay * epoch))
 callbacks = [tensorBoard, model_checkpoint, logger, MyCallback(), lrs]
-
-fullModel.fit(dTrain_noisy, dTrain, shuffle=True, epochs=epochs, batch_size=batch_size,
-           validation_data=(dValid_noisy, dValid), callbacks=callbacks)
+if model == 'CAE':
+    fullModel.fit(dTrain, dTrain, shuffle=True, epochs=epochs, batch_size=batch_size,
+           validation_data=(dValid, dValid), callbacks=callbacks)
+if model == 'CVAE':
+    fullModel.fit(dTrain, shuffle=True, epochs=epochs, batch_size=batch_size,
+               validation_data=(dValid, None), callbacks=callbacks)
+    generator.save_weights(weightsDir+"/" + model + "_3D_generator.hdf5")
+    
 encoder.save_weights(weightsDir+"/" + model + "_3D_encoder.hdf5")
 
 end = datetime.datetime.now()

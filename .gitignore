@@ -11,6 +11,11 @@ __pycache__/
 /Dataset/
 /tensorboard/
 /Results/
+/Utils/reports/
 
 # My docs
 /VSTS.txt
+
+#Schedule files
+*.cmd
+Train_AE_*.py
