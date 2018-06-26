@@ -43,32 +43,32 @@ def BNUpConv(xin, filters, strides, name):
                                         padding='same', activation=None, name=name)(x)
     return x
 
-def Generator(latent_dim):
+def Generator(latent_dim, d=2):
     generator_input = tf.keras.layers.Input(shape=(latent_dim,), name='input')
     x = tf.keras.layers.Dense(512, activation='relu', name='Dense2')(generator_input)
     x = tf.keras.layers.Reshape((8,8,8,1), name='Reshape')(x)
-    x = UpConvBN(x, filters=32, strides=(2,2,2), name='UpConv1')
-    x = BNConv(x, filters=32, strides=(1,1,1), name='Conv9')
-    x = UpConvBN(x, filters=16, strides=(2,2,2), name='UpConv2')
-    x = BNConv(x, filters=16, strides=(1,1,1), name='Conv10')
-    x = UpConvBN(x, filters=8, strides=(2,2,2), name='UpConv3')
-    x = BNConv(x, filters=8, strides=(1,1,1), name='Conv11')
-    x = UpConvBN(x, filters=8, strides=(2,2,2), name='UpConv4')
+    x = UpConvBN(x, filters=int(32/d), strides=(2,2,2), name='UpConv1')
+    x = BNConv(x, filters=int(32/d), strides=(1,1,1), name='Conv9')
+    x = UpConvBN(x, filters=int(16/d), strides=(2,2,2), name='UpConv2')
+    x = BNConv(x, filters=int(16/d), strides=(1,1,1), name='Conv10')
+    x = UpConvBN(x, filters=int(8/d), strides=(2,2,2), name='UpConv3')
+    x = BNConv(x, filters=int(8/d), strides=(1,1,1), name='Conv11')
+    x = UpConvBN(x, filters=int(8/d), strides=(2,2,2), name='UpConv4')
     x_generated = tf.keras.layers.Conv3D(filters=1, kernel_size=(3,3,3), strides=(1,1,1),
                                padding='same', activation='sigmoid', name='output')(x)
     generator = tf.keras.Model(generator_input, x_generated)
     return generator
     
-def CVAE(img_size, batch_size, latent_dim):
+def CVAE(img_size, batch_size, latent_dim, d=2):
     inLayer = tf.keras.layers.Input(batch_shape=(batch_size,) + img_size, name='input')
 #    inLayer = tf.keras.layers.Input(shape=img_size, name='input')
-    x = ConvBN(inLayer, filters=8, strides=(2,2,2), name='Conv1_d')
-    x = BNConv(x, filters=8, strides=(1,1,1), name='Conv2')
-    x = BNConv(x, filters=16, strides=(2,2,2), name='Conv3_d')
-    x = BNConv(x, filters=16, strides=(1,1,1), name='Conv4')
-    x = BNConv(x, filters=32, strides=(2,2,2), name='Conv5_d')
-    x = BNConv(x, filters=32, strides=(1,1,1), name='Conv6')
-    x = BNConv(x, filters=64, strides=(2,2,2), name='Conv7_d')
+    x = ConvBN(inLayer, filters=int(8/d), strides=(2,2,2), name='Conv1_d')
+    x = BNConv(x, filters=int(8/d), strides=(1,1,1), name='Conv2')
+    x = BNConv(x, filters=int(16/d), strides=(2,2,2), name='Conv3_d')
+    x = BNConv(x, filters=int(16/d), strides=(1,1,1), name='Conv4')
+    x = BNConv(x, filters=int(32/d), strides=(2,2,2), name='Conv5_d')
+    x = BNConv(x, filters=int(32/d), strides=(1,1,1), name='Conv6')
+    x = BNConv(x, filters=int(32/d), strides=(2,2,2), name='Conv7_d')
     x = BNConv(x, filters=1, strides=(1,1,1), name='Conv8')
     x = tf.keras.layers.Flatten(name='Flatten')(x)
     x = tf.keras.layers.Dense(latent_dim, activation='sigmoid', name='Dense1')(x)
@@ -122,7 +122,7 @@ def CVAE(img_size, batch_size, latent_dim):
 if __name__ == '__main__':
     img_size = (128,128,128,1)
     batch_size = 4
-    latent_dim = 128
+    latent_dim = 64
     encoder, generator, CVAE_3D = CVAE(img_size, batch_size, latent_dim)
     CVAE_3D.summary()
     tf.keras.utils.plot_model(CVAE_3D, to_file='CVAE_Model.png', show_shapes=True)

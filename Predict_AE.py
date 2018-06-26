@@ -27,11 +27,11 @@ K.set_session(session)
 from Models import CAE_3D, CVAE_3D
 from Utils.load_dataset import load_list
 
-#modelName = 'CAE'
 modelName = 'CVAE'
+#modelName = 'CVAE'
 noisy = False
 resultsDir = './Results/'
-run = 'run-2'
+run = 'run-1'
 currDir = resultsDir + modelName  + '/' + run
 
 listPath = currDir + '/reports/validation_list.txt' 

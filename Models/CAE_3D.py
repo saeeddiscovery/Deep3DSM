@@ -69,15 +69,15 @@ def get_encoder_from_CAE3D(model):
 #    return decoder
 
 
-def FullModel(img_size, latent_dim):
+def FullModel(img_size, latent_dim, d=2):
     inLayer = tf.keras.layers.Input(shape=img_size, name='input')
-    x = ConvBN(inLayer, filters=8, strides=(2,2,2), name='Conv1_d')
-    x = BNConv(x, filters=8, strides=(1,1,1), name='Conv2')
-    x = BNConv(x, filters=16, strides=(2,2,2), name='Conv3_d')
-    x = BNConv(x, filters=16, strides=(1,1,1), name='Conv4')
-    x = BNConv(x, filters=32, strides=(2,2,2), name='Conv5_d')
-    x = BNConv(x, filters=32, strides=(1,1,1), name='Conv6')
-    x = BNConv(x, filters=64, strides=(2,2,2), name='Conv7_d')
+    x = ConvBN(inLayer, filters=8/d, strides=(2,2,2), name='Conv1_d')
+    x = BNConv(x, filters=int(8/d), strides=(1,1,1), name='Conv2')
+    x = BNConv(x, filters=int(16/d), strides=(2,2,2), name='Conv3_d')
+    x = BNConv(x, filters=int(16/d), strides=(1,1,1), name='Conv4')
+    x = BNConv(x, filters=int(32/d), strides=(2,2,2), name='Conv5_d')
+    x = BNConv(x, filters=int(32/d), strides=(1,1,1), name='Conv6')
+    x = BNConv(x, filters=int(32/d), strides=(2,2,2), name='Conv7_d')
     c = BNConv(x, filters=1, strides=(1,1,1), name='Conv8')
 #    x = tf.keras.layers.Reshape((512,))(c)
     x = tf.keras.layers.Flatten(name='Flatten')(c)
@@ -86,14 +86,14 @@ def FullModel(img_size, latent_dim):
     x = tf.keras.layers.Dense(512, activation='relu', name='Dense')(encoded)
 #    x = tf.keras.layers.Reshape(c.shape[1:])(x)
     x = tf.keras.layers.Reshape((8,8,8,1), name='Reshape')(x)
-    x = UpConvBN(x, filters=64, strides=(2,2,2), name='UpConv1')
-    x = BNConv(x, filters=32, strides=(1,1,1), name='Conv9')
-    x = BNUpConv(x, filters=32, strides=(2,2,2), name='UpConv2')
-    x = BNConv(x, filters=16, strides=(1,1,1), name='Conv10')
-    x = BNUpConv(x, filters=16, strides=(2,2,2), name='UpConv3')
-    x = BNConv(x, filters=8, strides=(1,1,1), name='Conv11')
-    x = BNUpConv(x, filters=8, strides=(2,2,2), name='UpConv4')
-    x = BNConv(x, filters=8, strides=(1,1,1), name='Conv12')
+    x = UpConvBN(x, filters=int(32/d), strides=(2,2,2), name='UpConv1')
+    x = BNConv(x, filters=int(32/d), strides=(1,1,1), name='Conv9')
+    x = BNUpConv(x, filters=int(32/d), strides=(2,2,2), name='UpConv2')
+    x = BNConv(x, filters=int(16/d), strides=(1,1,1), name='Conv10')
+    x = BNUpConv(x, filters=int(16/d), strides=(2,2,2), name='UpConv3')
+    x = BNConv(x, filters=int(8/d), strides=(1,1,1), name='Conv11')
+    x = BNUpConv(x, filters=int(8/d), strides=(2,2,2), name='UpConv4')
+    x = BNConv(x, filters=int(8/d), strides=(1,1,1), name='Conv12')
     x = tf.keras.layers.Conv3D(filters=1, kernel_size=1)(x)
     x = tf.keras.layers.BatchNormalization()(x)
     x = tf.keras.layers.Activation('sigmoid')(x)
@@ -104,7 +104,7 @@ def FullModel(img_size, latent_dim):
 if __name__ == '__main__':
 #    img_size = (None,None,None,1)
     img_size = (128,128,128,1)
-    latent_dim = 128
+    latent_dim = 64
     CAE3D = FullModel(img_size, latent_dim)
     CAE3D.summary()
     encoder = get_encoder_from_CAE3D(CAE3D)

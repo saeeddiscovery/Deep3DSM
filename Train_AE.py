@@ -52,7 +52,7 @@ if continueFromLatRun:
    myPrint('...Validation images:      {0}'.format(len(dTrain)), path=currDir)
  
 else:
-    dTrain, dValid, _, _ = prepare_dataset(datasetDir, split=0.85, logPath=currDir)
+    dTrain, dValid, _, _ = prepare_dataset(datasetDir, split=0.955, logPath=currDir)
 
 ## Add random noise before training!
 #myPrint('...Adding noise to images N(0,0.33)', path=currDir)
@@ -90,8 +90,12 @@ def dice_coef(y_true, y_pred, smooth=1.):
     intersection = K.sum(y_true_f * y_pred_f)
     return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
 
-def dice_coef_loss(y_true, y_pred):
-    return -dice_coef(y_true, y_pred)
+def myLoss(y_true, y_pred):
+    a = 0.5
+    BCE = tf.keras.losses.binary_crossentropy(y_true, y_pred)
+    DCE = -dice_coef(y_true, y_pred)
+    myLoss = a*BCE + (1-a)*DCE
+    return myLoss
 
 def summary(model): # Compute number of params in a model (the actual number of floats)
     trainParams = sum([np.prod(K.get_value(w).shape) for w in model.trainable_weights])
@@ -101,7 +105,7 @@ def summary(model): # Compute number of params in a model (the actual number of 
 
 img_size = dTrain.shape[1:]
 #img_size = (None, None, None, 1)
-latent_dim = 128
+latent_dim = 64
 batch_size = 1
 myPrint('...Input image size: {}'.format(img_size), path=currDir)
 myPrint('...Batch size: {}'.format(batch_size), path=currDir)
@@ -120,7 +124,7 @@ lr_metric = get_lr_metric(opt)
 if model == 'CAE':
     fullModel = CAE_3D.FullModel(img_size, latent_dim)
     encoder = CAE_3D.get_encoder_from_CAE3D(fullModel)
-    fullModel.compile(optimizer=opt, loss=dice_coef_loss, metrics=[lr_metric],
+    fullModel.compile(optimizer=opt, loss=myLoss, metrics=[dice_coef, lr_metric],
             options=run_opts)
 
 elif model == 'CVAE':
@@ -156,25 +160,31 @@ class MyCallback(tf.keras.callbacks.Callback):
         lr_with_decay = lr / (1. + decay * epoch)
         myLog(str(epoch) +'\t' + str(K.eval(lr_with_decay)) +'\t' + str(logs.get("loss")) +'\t' + str(logs.get("val_loss")), path=currDir)
 
-weights_file = weightsDir + model + "_3D_model.hdf5"
+weights_file_v = weightsDir + model + "_3D_model_v.hdf5"
+weights_file_t = weightsDir + model + "_3D_model_t.hdf5"
 
-if continueFromLatRun:
-    fullModel.load_weights(weights_file)
+#if continueFromLatRun:
+#    fullModel.load_weights(weights_file)
 
 epochs=200        
 #weights_file = "CAE_3D_model-{epoch:02d}-{val_loss:.2f}.hdf5"
-model_checkpoint = tf.keras.callbacks.ModelCheckpoint(weights_file,
+model_checkpoint_v = tf.keras.callbacks.ModelCheckpoint(weights_file_v,
                                                       monitor='val_loss',
+                                                      verbose=1,
+                                                      save_best_only=True,
+                                                      save_weights_only=True)
+model_checkpoint_t = tf.keras.callbacks.ModelCheckpoint(weights_file_t,
+                                                      monitor='loss',
                                                       verbose=1,
                                                       save_best_only=True,
                                                       save_weights_only=True)
 logger = tf.keras.callbacks.CSVLogger(currDir+'/reports/training.log', separator='\t')
 tensorBoard = tf.keras.callbacks.TensorBoard(log_dir='./tensorboard/'+model+currRun)
 lrs = tf.keras.callbacks.LearningRateScheduler(lambda epoch: lr / (1. + decay * epoch))
-callbacks = [tensorBoard, model_checkpoint, logger, MyCallback(), lrs]
+callbacks = [tensorBoard, model_checkpoint_v, model_checkpoint_t, logger, MyCallback(), lrs]
 if model == 'CAE':
-    fullModel.fit(dTrain, dTrain, shuffle=True, epochs=epochs, batch_size=batch_size,
-           validation_data=(dValid, dValid), callbacks=callbacks)
+    fullModel.fit(dTrain_noisy, dTrain, shuffle=True, epochs=epochs, batch_size=batch_size,
+           validation_data=(dValid_noisy, dValid), callbacks=callbacks)
 if model == 'CVAE':
     fullModel.fit(dTrain, shuffle=True, epochs=epochs, batch_size=batch_size,
                validation_data=(dValid, None), callbacks=callbacks)
