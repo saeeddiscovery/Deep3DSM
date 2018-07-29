@@ -11,13 +11,13 @@ import os, glob
 from Utils.utils import myPrint, myLog
 from Utils.utils import sortHuman
 
-#model = 'CAE'
-model = 'CVAE'
+model = 'CAE'
+#model = 'CVAE'
 resultsDir = './Results/'
 
 # Resume training
-continueFromLatRun = False
-lastRun = '/run-1/'
+continueFromLatRun = True
+lastRun = '/run-2/'
 
 if not os.path.exists(resultsDir+model) or os.listdir(resultsDir+model)==[]:
     currRun = '/run-1/'
@@ -49,17 +49,17 @@ if continueFromLatRun:
    myPrint('------------<  Dataset Info >------------', path=currDir)
    myPrint('...Dataset reloaded from saved lists', path=currDir)
    myPrint('...Train images:      {0}'.format(len(dTrain)), path=currDir)
-   myPrint('...Validation images:      {0}'.format(len(dTrain)), path=currDir)
+   myPrint('...Validation images:      {0}'.format(len(dValid)), path=currDir)
  
 else:
     dTrain, dValid, _, _ = prepare_dataset(datasetDir, split=0.955, logPath=currDir)
 
-## Add random noise before training!
-#myPrint('...Adding noise to images N(0,0.33)', path=currDir)
-#import numpy as np
-#noise_factor = 0.5 
-#dTrain_noisy = dTrain + noise_factor * np.random.normal(loc=0.0, scale=0.33, size=dTrain.shape)
-#dValid_noisy = dValid + noise_factor * np.random.normal(loc=0.0, scale=0.33, size=dValid.shape) 
+# Add random noise before training!
+myPrint('...Adding noise to images N(0,0.33)', path=currDir)
+import numpy as np
+noise_factor = 0.5 
+dTrain_noisy = dTrain + noise_factor * np.random.normal(loc=0.0, scale=0.33, size=dTrain.shape)
+dValid_noisy = dValid + noise_factor * np.random.normal(loc=0.0, scale=0.33, size=dValid.shape) 
 
 ##-------Visualize Dataset-------#
 #from Utils.utils import visualizeDataset
@@ -106,24 +106,25 @@ def summary(model): # Compute number of params in a model (the actual number of 
 img_size = dTrain.shape[1:]
 #img_size = (None, None, None, 1)
 latent_dim = 64
-batch_size = 1
+batch_size = 3
 myPrint('...Input image size: {}'.format(img_size), path=currDir)
 myPrint('...Batch size: {}'.format(batch_size), path=currDir)
+myPrint('...Latent dim: {}'.format(latent_dim), path=currDir)
 
 def get_lr_metric(optimizer):
     def lr(y_true, y_pred):
         return optimizer.lr
     return lr
 
-lr = 0.001
-decay = 1e-3
+lr = 0.0005
+decay = 1e-4
 #opt = tf.keras.optimizers.Adam(lr=0.01, decay=1e-5)
 opt = tf.keras.optimizers.Adam(lr=lr)
 lr_metric = get_lr_metric(opt)
 
 if model == 'CAE':
     fullModel = CAE_3D.FullModel(img_size, latent_dim)
-    encoder = CAE_3D.get_encoder_from_CAE3D(fullModel)
+#    encoder = CAE_3D.get_encoder_from_CAE3D(fullModel)
     fullModel.compile(optimizer=opt, loss=myLoss, metrics=[dice_coef, lr_metric],
             options=run_opts)
 
@@ -163,10 +164,10 @@ class MyCallback(tf.keras.callbacks.Callback):
 weights_file_v = weightsDir + model + "_3D_model_v.hdf5"
 weights_file_t = weightsDir + model + "_3D_model_t.hdf5"
 
-#if continueFromLatRun:
-#    fullModel.load_weights(weights_file)
+if continueFromLatRun:
+    fullModel.load_weights(weights_file_t)
 
-epochs=200        
+epochs=500        
 #weights_file = "CAE_3D_model-{epoch:02d}-{val_loss:.2f}.hdf5"
 model_checkpoint_v = tf.keras.callbacks.ModelCheckpoint(weights_file_v,
                                                       monitor='val_loss',
@@ -184,12 +185,14 @@ lrs = tf.keras.callbacks.LearningRateScheduler(lambda epoch: lr / (1. + decay * 
 callbacks = [tensorBoard, model_checkpoint_v, model_checkpoint_t, logger, MyCallback(), lrs]
 if model == 'CAE':
     fullModel.fit(dTrain_noisy, dTrain, shuffle=True, epochs=epochs, batch_size=batch_size,
-           validation_data=(dValid_noisy, dValid), callbacks=callbacks)
+           validation_data=(dValid, dValid), callbacks=callbacks, initial_epoch=343)
 if model == 'CVAE':
     fullModel.fit(dTrain, shuffle=True, epochs=epochs, batch_size=batch_size,
                validation_data=(dValid, None), callbacks=callbacks)
     generator.save_weights(weightsDir+"/" + model + "_3D_generator.hdf5")
-    
+
+fullModel.load_weights(weights_file_v)  
+encoder = CAE_3D.get_encoder_from_CAE3D(fullModel)  
 encoder.save_weights(weightsDir+"/" + model + "_3D_encoder.hdf5")
 
 end = datetime.datetime.now()
