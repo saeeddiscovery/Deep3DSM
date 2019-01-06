@@ -69,9 +69,9 @@ def get_encoder_from_CAE3D(model):
 #    return decoder
 
 
-def FullModel(img_size, latent_dim, d=0.5):
+def FullModel(img_size, latent_dim, d=2):
     inLayer = tf.keras.layers.Input(shape=img_size, name='input')
-    x = ConvBN(inLayer, filters=8/d, strides=(2,2,2), name='Conv1_d')
+    x = ConvBN(inLayer, filters=int(8/d), strides=(2,2,2), name='Conv1_d')
     x = BNConv(x, filters=int(8/d), strides=(1,1,1), name='Conv2')
     x = BNConv(x, filters=int(16/d), strides=(2,2,2), name='Conv3_d')
     x = BNConv(x, filters=int(16/d), strides=(1,1,1), name='Conv4')
